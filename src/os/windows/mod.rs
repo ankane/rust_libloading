@@ -24,16 +24,21 @@ mod windows_imports {
     }
 }
 #[cfg(any(not(libloading_docs), windows))]
+#[allow(clippy::upper_case_acronyms)]
 mod windows_imports {
-    extern crate winapi;
-    pub(super) use self::winapi::shared::minwindef::{WORD, DWORD, HMODULE, FARPROC};
-    pub(super) use self::winapi::shared::ntdef::WCHAR;
-    pub(super) use self::winapi::um::{errhandlingapi, libloaderapi};
+    extern crate windows_sys;
+    pub(super) type DWORD = u32;
+    pub(super) type WORD = u16;
+    pub(super) type WCHAR = u16;
+    pub(super) type FARPROC = *mut u8;
+    pub(super) use self::windows_sys::Win32::Foundation::{self, HINSTANCE as HMODULE};
+    pub(super) use self::windows_sys::Win32::System::Diagnostics::Debug as errhandlingapi;
+    pub(super) use self::windows_sys::Win32::System::LibraryLoader as libloaderapi;
     pub(super) use std::os::windows::ffi::{OsStrExt, OsStringExt};
     pub(super) const SEM_FAILCE: DWORD = 1;
 
     pub(super) mod consts {
-        pub(crate) use super::winapi::um::libloaderapi::{
+        pub(crate) use super::windows_sys::Win32::System::LibraryLoader::{
             LOAD_IGNORE_CODE_AUTHZ_LEVEL,
             LOAD_LIBRARY_AS_DATAFILE,
             LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE,
@@ -116,7 +121,7 @@ impl Library {
     /// [MSDN]: https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexw
     pub fn this() -> Result<Library, crate::Error> {
         unsafe {
-            let mut handle: HMODULE = std::ptr::null_mut();
+            let mut handle: HMODULE = 0;
             with_get_last_error(|source| crate::Error::GetModuleHandleExW { source }, || {
                 let result = libloaderapi::GetModuleHandleExW(0, std::ptr::null_mut(), &mut handle);
                 if result == 0 {
@@ -149,7 +154,7 @@ impl Library {
         let wide_filename: Vec<u16> = filename.as_ref().encode_wide().chain(Some(0)).collect();
 
         let ret = unsafe {
-            let mut handle: HMODULE = std::ptr::null_mut();
+            let mut handle: HMODULE = 0;
             with_get_last_error(|source| crate::Error::GetModuleHandleExW { source }, || {
                 // Make sure no winapi calls as a result of drop happen inside this closure, because
                 // otherwise that might change the return value of the GetLastError.
@@ -194,8 +199,8 @@ impl Library {
             // Make sure no winapi calls as a result of drop happen inside this closure, because
             // otherwise that might change the return value of the GetLastError.
             let handle =
-                libloaderapi::LoadLibraryExW(wide_filename.as_ptr(), std::ptr::null_mut(), flags);
-            if handle.is_null()  {
+                libloaderapi::LoadLibraryExW(wide_filename.as_ptr(), 0, flags);
+            if handle == 0  {
                 None
             } else {
                 Some(Library(handle))
@@ -221,15 +226,13 @@ impl Library {
         ensure_compatible_types::<T, FARPROC>()?;
         let symbol = cstr_cow_from_bytes(symbol)?;
         with_get_last_error(|source| crate::Error::GetProcAddress { source }, || {
-            let symbol = libloaderapi::GetProcAddress(self.0, symbol.as_ptr());
-            if symbol.is_null() {
-                None
-            } else {
-                Some(Symbol {
-                    pointer: symbol,
+            let symbol = libloaderapi::GetProcAddress(self.0, symbol.as_ptr() as *const u8);
+            symbol.map(|ptr|
+                Symbol {
+                    pointer: ptr as *mut _,
                     pd: marker::PhantomData
-                })
-            }
+                }
+            )
         }).map_err(|e| e.unwrap_or(crate::Error::GetProcAddressUnknown))
     }
 
@@ -243,14 +246,12 @@ impl Library {
         with_get_last_error(|source| crate::Error::GetProcAddress { source }, || {
             let ordinal = ordinal as usize as *mut _;
             let symbol = libloaderapi::GetProcAddress(self.0, ordinal);
-            if symbol.is_null() {
-                None
-            } else {
-                Some(Symbol {
-                    pointer: symbol,
+            symbol.map(|ptr|
+                Symbol {
+                    pointer: ptr as *mut _,
                     pd: marker::PhantomData
-                })
-            }
+                }
+            )
         }).map_err(|e| e.unwrap_or(crate::Error::GetProcAddressUnknown))
     }
 
@@ -309,13 +310,13 @@ impl fmt::Debug for Library {
             let len = libloaderapi::GetModuleFileNameW(self.0,
                 buf[..].as_mut_ptr().cast(), 1024) as usize;
             if len == 0 {
-                f.write_str(&format!("Library@{:p}", self.0))
+                f.write_str(&format!("Library@{:p}", self.0 as *const u8))
             } else {
                 let string: OsString = OsString::from_wide(
                     // FIXME: use Maybeuninit::slice_get_ref when stable
                     &*(&buf[..len] as *const [_] as *const [WCHAR])
                 );
-                f.write_str(&format!("Library@{:p} from {:?}", self.0, string))
+                f.write_str(&format!("Library@{:p} from {:?}", self.0 as *const u8, string))
             }
         }
     }
@@ -382,8 +383,8 @@ impl ErrorModeGuard {
     #[allow(clippy::if_same_then_else)]
     fn new() -> Option<ErrorModeGuard> {
         unsafe {
-            let mut previous_mode = 0;
-            if errhandlingapi::SetThreadErrorMode(SEM_FAILCE, &mut previous_mode) == 0 {
+            let previous_mode = 0;
+            if errhandlingapi::SetThreadErrorMode(SEM_FAILCE, &previous_mode) == 0 {
                 // How in the world is it possible for what is essentially a simple variable swap
                 // to fail?  For now we just ignore the error -- the worst that can happen here is
                 // the previous mode staying on and user seeing a dialog error on older Windows
@@ -410,7 +411,7 @@ fn with_get_last_error<T, F>(wrap: fn(crate::error::WindowsError) -> crate::Erro
 -> Result<T, Option<crate::Error>>
 where F: FnOnce() -> Option<T> {
     closure().ok_or_else(|| {
-        let error = unsafe { errhandlingapi::GetLastError() };
+        let error = unsafe { Foundation::GetLastError() };
         if error == 0 {
             None
         } else {
