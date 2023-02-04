@@ -30,7 +30,8 @@ mod windows_imports {
     pub(super) type DWORD = u32;
     pub(super) type WORD = u16;
     pub(super) type WCHAR = u16;
-    pub(super) use self::windows_sys::Win32::Foundation::{self, FARPROC, HINSTANCE as HMODULE};
+    pub(super) type FARPROC = *mut u8;
+    pub(super) use self::windows_sys::Win32::Foundation::{self, HINSTANCE as HMODULE};
     pub(super) use self::windows_sys::Win32::System::Diagnostics::Debug as errhandlingapi;
     pub(super) use self::windows_sys::Win32::System::LibraryLoader as libloaderapi;
     pub(super) use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -230,7 +231,7 @@ impl Library {
                 None
             } else {
                 Some(Symbol {
-                    pointer: symbol,
+                    pointer: symbol.unwrap() as *mut u8,
                     pd: marker::PhantomData
                 })
             }
@@ -251,7 +252,7 @@ impl Library {
                 None
             } else {
                 Some(Symbol {
-                    pointer: symbol,
+                    pointer: symbol.unwrap() as *mut u8,
                     pd: marker::PhantomData
                 })
             }
@@ -345,7 +346,7 @@ impl<T> Symbol<T> {
 impl<T> Symbol<Option<T>> {
     /// Lift Option out of the symbol.
     pub fn lift_option(self) -> Option<Symbol<T>> {
-        if self.pointer.is_none() {
+        if self.pointer.is_null() {
             None
         } else {
             Some(Symbol {
@@ -369,17 +370,16 @@ impl<T> Clone for Symbol<T> {
 impl<T> ::std::ops::Deref for Symbol<T> {
     type Target = T;
     fn deref(&self) -> &T {
-        match self.pointer {
+        unsafe {
             // Additional reference level for a dereference on `deref` return value.
-            Some(ptr) => unsafe { &*(ptr as *const *mut () as *const T) },
-            None => todo!(),
+            &*(&self.pointer as *const *mut _ as *const T)
         }
     }
 }
 
 impl<T> fmt::Debug for Symbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("Symbol@{:p}", self.pointer.unwrap() as *const T))
+        f.write_str(&format!("Symbol@{:p}", self.pointer))
     }
 }
 
