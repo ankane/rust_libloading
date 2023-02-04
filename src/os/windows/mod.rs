@@ -375,7 +375,7 @@ impl<T> ::std::ops::Deref for Symbol<T> {
         println!("deref");
         match self.pointer {
             // Additional reference level for a dereference on `deref` return value.
-            Some(f) => unsafe { std::mem::transmute(&f) },
+            Some(f) => unsafe { std::mem::transmute_copy(&f) },
             None => todo!(),
         }
     }
