@@ -339,6 +339,7 @@ pub struct Symbol<T> {
 impl<T> Symbol<T> {
     /// Convert the loaded `Symbol` into a handle.
     pub fn into_raw(self) -> FARPROC {
+        println!("into_raw");
         self.pointer
     }
 }
@@ -346,6 +347,7 @@ impl<T> Symbol<T> {
 impl<T> Symbol<Option<T>> {
     /// Lift Option out of the symbol.
     pub fn lift_option(self) -> Option<Symbol<T>> {
+        println!("lift_option");
         if self.pointer.is_none() {
             None
         } else {
@@ -362,6 +364,7 @@ unsafe impl<T: Sync> Sync for Symbol<T> {}
 
 impl<T> Clone for Symbol<T> {
     fn clone(&self) -> Symbol<T> {
+        println!("clone");
         Symbol { ..*self }
     }
 }
@@ -380,7 +383,7 @@ impl<T> ::std::ops::Deref for Symbol<T> {
 
 impl<T> fmt::Debug for Symbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("Symbol@{:p}", self.pointer.unwrap() as *const T))
+        f.write_str(&format!("Symbol"))
     }
 }
 
