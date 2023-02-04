@@ -237,7 +237,7 @@ fn library_this() {
 #[test]
 fn works_getlasterror() {
     use libloading::os::windows::{Library, Symbol};
-    use self::windows_sys::Win32::Foundation as errhandlingapi;
+    use windows_sys::Win32::Foundation as errhandlingapi;
     type DWORD = u32;
 
     unsafe {
@@ -252,7 +252,7 @@ fn works_getlasterror() {
 #[test]
 fn works_getlasterror0() {
     use libloading::os::windows::{Library, Symbol};
-    use self::windows_sys::Win32::Foundation as errhandlingapi;
+    use windows_sys::Win32::Foundation as errhandlingapi;
     type DWORD = u32;
 
     unsafe {
