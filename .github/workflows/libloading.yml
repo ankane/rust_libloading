@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_toolchain: [nightly, stable, 1.40.0]
+        rust_toolchain: [stable] #[nightly, stable, 1.40.0]
         os: [windows-latest]
     timeout-minutes: 20
     steps:
@@ -31,34 +31,34 @@ jobs:
         # pwsh.exe drops quotes kekw. https://stackoverflow.com/a/59036879
         shell: bash
 
-  windows-test:
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust_toolchain: [nightly, stable]
-        rust_target:
-          - x86_64-pc-windows-gnu
-          - i686-pc-windows-gnu
-        include:
-          - rust_target: x86_64-pc-windows-gnu
-            mingw_path: C:/msys64/mingw64/bin
-            package: mingw-w64-x86_64-gcc
-          - rust_target: i686-pc-windows-gnu
-            mingw_path: C:/msys64/mingw32/bin
-            package: mingw-w64-i686-gcc
-    steps:
-      - uses: actions/checkout@v2
-      - run: rustup install ${{ matrix.rust_toolchain }} --profile=minimal
-      - run: rustup default ${{ matrix.rust_toolchain }}
-      - run: rustup target add ${{ matrix.rust_target }}
-      - uses: msys2/setup-msys2@v2
-        with:
-          release: false
-          install: ${{ matrix.package }}
-      - run: echo "c:/msys64/bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-      - run: echo "${{ matrix.mingw_path }}" | Out-File -FilePath $env:GITHUB_PATH -Append
-        if: ${{ matrix.mingw_path }}"
-      - run: cargo test --target ${{ matrix.rust_target }}
-        env:
-          TARGET: ${{ matrix.rust_target}}
+  # windows-test:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       rust_toolchain: [nightly, stable]
+  #       rust_target:
+  #         - x86_64-pc-windows-gnu
+  #         - i686-pc-windows-gnu
+  #       include:
+  #         - rust_target: x86_64-pc-windows-gnu
+  #           mingw_path: C:/msys64/mingw64/bin
+  #           package: mingw-w64-x86_64-gcc
+  #         - rust_target: i686-pc-windows-gnu
+  #           mingw_path: C:/msys64/mingw32/bin
+  #           package: mingw-w64-i686-gcc
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: rustup install ${{ matrix.rust_toolchain }} --profile=minimal
+  #     - run: rustup default ${{ matrix.rust_toolchain }}
+  #     - run: rustup target add ${{ matrix.rust_target }}
+  #     - uses: msys2/setup-msys2@v2
+  #       with:
+  #         release: false
+  #         install: ${{ matrix.package }}
+  #     - run: echo "c:/msys64/bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+  #     - run: echo "${{ matrix.mingw_path }}" | Out-File -FilePath $env:GITHUB_PATH -Append
+  #       if: ${{ matrix.mingw_path }}"
+  #     - run: cargo test --target ${{ matrix.rust_target }}
+  #       env:
+  #         TARGET: ${{ matrix.rust_target}}

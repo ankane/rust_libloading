@@ -371,7 +371,7 @@ impl<T> ::std::ops::Deref for Symbol<T> {
     fn deref(&self) -> &T {
         unsafe {
             // Additional reference level for a dereference on `deref` return value.
-            &*(self.pointer.unwrap() as *const T)
+            &*(self.pointer.unwrap() as *const *mut u8 as *const T)
         }
     }
 }
