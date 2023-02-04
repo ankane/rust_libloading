@@ -24,6 +24,7 @@ mod windows_imports {
     }
 }
 #[cfg(any(not(libloading_docs), windows))]
+#[allow(clippy::upper_case_acronyms)]
 mod windows_imports {
     extern crate windows_sys;
     pub(super) type DWORD = u32;
@@ -387,8 +388,8 @@ impl ErrorModeGuard {
     #[allow(clippy::if_same_then_else)]
     fn new() -> Option<ErrorModeGuard> {
         unsafe {
-            let mut previous_mode = 0;
-            if errhandlingapi::SetThreadErrorMode(SEM_FAILCE, &mut previous_mode) == 0 {
+            let previous_mode = 0;
+            if errhandlingapi::SetThreadErrorMode(SEM_FAILCE, &previous_mode) == 0 {
                 // How in the world is it possible for what is essentially a simple variable swap
                 // to fail?  For now we just ignore the error -- the worst that can happen here is
                 // the previous mode staying on and user seeing a dialog error on older Windows
