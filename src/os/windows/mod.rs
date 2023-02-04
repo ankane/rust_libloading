@@ -26,9 +26,9 @@ mod windows_imports {
 #[cfg(any(not(libloading_docs), windows))]
 mod windows_imports {
     extern crate windows_sys;
-    pub type DWORD = u32;
-    pub type WORD = u16;
-    pub type WCHAR = u16;
+    pub(super) type DWORD = u32;
+    pub(super) type WORD = u16;
+    pub(super) type WCHAR = u16;
     pub(super) use self::windows_sys::Win32::Foundation::HINSTANCE as HMODULE;
     pub(super) use self::windows_sys::Win32::Foundation::FARPROC;
     pub(super) use self::windows_sys::Win32::Foundation::GetLastError;
@@ -314,13 +314,13 @@ impl fmt::Debug for Library {
             let len = libloaderapi::GetModuleFileNameW(self.0,
                 buf[..].as_mut_ptr().cast(), 1024) as usize;
             if len == 0 {
-                f.write_str(&format!("Library@{:?}", self.0))
+                f.write_str(&format!("Library@{:p}", self.0 as *const u8))
             } else {
                 let string: OsString = OsString::from_wide(
                     // FIXME: use Maybeuninit::slice_get_ref when stable
                     &*(&buf[..len] as *const [_] as *const [WCHAR])
                 );
-                f.write_str(&format!("Library@{:?} from {:?}", self.0, string))
+                f.write_str(&format!("Library@{:p} from {:?}", self.0 as *const u8, string))
             }
         }
     }
@@ -370,14 +370,14 @@ impl<T> ::std::ops::Deref for Symbol<T> {
     fn deref(&self) -> &T {
         unsafe {
             // Additional reference level for a dereference on `deref` return value.
-            &*(&self.pointer as *const *mut _ as *const T)
+            &*(self.pointer.unwrap() as *const T)
         }
     }
 }
 
 impl<T> fmt::Debug for Symbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("Symbol@{:p}", self.pointer))
+        f.write_str(&format!("Symbol@{:p}", self.pointer.unwrap() as *const T))
     }
 }
 
