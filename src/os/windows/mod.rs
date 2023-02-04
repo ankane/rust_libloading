@@ -370,9 +370,10 @@ impl<T> ::std::ops::Deref for Symbol<T> {
     type Target = T;
     fn deref(&self) -> &T {
         println!("deref");
-        unsafe {
+        match self.pointer {
             // Additional reference level for a dereference on `deref` return value.
-            &*(self.pointer.unwrap() as *const *mut T as *const T)
+            Some(f) => unsafe { &*(f as *const T) },
+            None => todo!(),
         }
     }
 }
