@@ -20,8 +20,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v2
-      - run: rustup install ${{ matrix.rust_toolchain }} --profile=minimal
-      - run: rustup default ${{ matrix.rust_toolchain }}
+      # - run: rustup install ${{ matrix.rust_toolchain }} --profile=minimal
+      # - run: rustup default ${{ matrix.rust_toolchain }}
       # - run: rustup component add clippy
       # - run: cargo clippy
       - run: cargo test -- --nocapture --test-threads=1
