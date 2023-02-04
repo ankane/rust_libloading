@@ -30,9 +30,7 @@ mod windows_imports {
     pub(super) type DWORD = u32;
     pub(super) type WORD = u16;
     pub(super) type WCHAR = u16;
-    pub(super) use self::windows_sys::Win32::Foundation::HINSTANCE as HMODULE;
-    pub(super) use self::windows_sys::Win32::Foundation::FARPROC;
-    pub(super) use self::windows_sys::Win32::Foundation::GetLastError;
+    pub(super) use self::windows_sys::Win32::Foundation::{self, FARPROC, HINSTANCE as HMODULE};
     pub(super) use self::windows_sys::Win32::System::Diagnostics::Debug as errhandlingapi;
     pub(super) use self::windows_sys::Win32::System::LibraryLoader as libloaderapi;
     pub(super) use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -347,7 +345,6 @@ impl<T> Symbol<T> {
 impl<T> Symbol<Option<T>> {
     /// Lift Option out of the symbol.
     pub fn lift_option(self) -> Option<Symbol<T>> {
-        println!("lift_option");
         if self.pointer.is_none() {
             None
         } else {
@@ -372,7 +369,6 @@ impl<T> Clone for Symbol<T> {
 impl<T> ::std::ops::Deref for Symbol<T> {
     type Target = T;
     fn deref(&self) -> &T {
-        println!("deref");
         match self.pointer {
             // Additional reference level for a dereference on `deref` return value.
             Some(ptr) => unsafe { &*(ptr as *const *mut () as *const T) },
@@ -383,7 +379,7 @@ impl<T> ::std::ops::Deref for Symbol<T> {
 
 impl<T> fmt::Debug for Symbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&format!("Symbol"))
+        f.write_str(&format!("Symbol@{:p}", self.pointer.unwrap() as *const T))
     }
 }
 
@@ -421,7 +417,7 @@ fn with_get_last_error<T, F>(wrap: fn(crate::error::WindowsError) -> crate::Erro
 -> Result<T, Option<crate::Error>>
 where F: FnOnce() -> Option<T> {
     closure().ok_or_else(|| {
-        let error = unsafe { GetLastError() };
+        let error = unsafe { Foundation::GetLastError() };
         if error == 0 {
             None
         } else {
