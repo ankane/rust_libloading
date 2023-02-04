@@ -369,9 +369,10 @@ impl<T> Clone for Symbol<T> {
 impl<T> ::std::ops::Deref for Symbol<T> {
     type Target = T;
     fn deref(&self) -> &T {
-        unsafe {
+        match self.pointer {
             // Additional reference level for a dereference on `deref` return value.
-            &*(self.pointer.unwrap() as *const T)
+            Some(ptr) => unsafe { &*(ptr as *const T) },
+            None => todo!(),
         }
     }
 }
