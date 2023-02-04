@@ -1,5 +1,5 @@
 #[cfg(windows)]
-extern crate winapi;
+extern crate windows_sys;
 
 extern crate libloading;
 use libloading::{Library, Symbol};
@@ -237,8 +237,8 @@ fn library_this() {
 #[test]
 fn works_getlasterror() {
     use libloading::os::windows::{Library, Symbol};
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::errhandlingapi;
+    use windows_sys::Win32::Foundation as errhandlingapi;
+    type DWORD = u32;
 
     unsafe {
         let lib = Library::new("kernel32.dll").unwrap();
@@ -252,8 +252,8 @@ fn works_getlasterror() {
 #[test]
 fn works_getlasterror0() {
     use libloading::os::windows::{Library, Symbol};
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::errhandlingapi;
+    use windows_sys::Win32::Foundation as errhandlingapi;
+    type DWORD = u32;
 
     unsafe {
         let lib = Library::new("kernel32.dll").unwrap();
