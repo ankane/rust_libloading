@@ -371,7 +371,7 @@ impl<T> ::std::ops::Deref for Symbol<T> {
     fn deref(&self) -> &T {
         match self.pointer {
             // Additional reference level for a dereference on `deref` return value.
-            Some(ptr) => unsafe { &*(ptr as *const T) },
+            Some(ptr) => unsafe { &*(ptr as *const *mut () as *const T) },
             None => todo!(),
         }
     }
